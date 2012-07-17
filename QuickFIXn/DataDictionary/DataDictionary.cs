@@ -325,7 +325,7 @@ namespace QuickFix.DataDictionary
         public void CheckValue(Fields.IField field)
         {
             DDField fld = FieldsByTag[field.Tag];
-            if (fld.HasEnums() && !fld.Enums.Contains(field.ToString()))
+            if (fld.HasEnums() && !fld.Enums.ContainsKey(field.ToString()))
             {
                 throw new IncorrectTagValue(field.Tag);
             }
@@ -418,7 +418,7 @@ namespace QuickFix.DataDictionary
 		}
 
         public Boolean FieldHasValue(int tag, String val) {
-            return FieldsByTag[tag].Enums.Contains(val);
+            return FieldsByTag[tag].Enums.ContainsKey(val);
         }
 
         private void setVersionInfo(XmlDocument doc) {
@@ -453,12 +453,15 @@ namespace QuickFix.DataDictionary
             String name = fldEl.Attributes["name"].Value;
             String fldType = fldEl.Attributes["type"].Value;
             int tag = QuickFix.Fields.Converters.IntConverter.Convert(tagstr);
-            HashSet<String> enums = new HashSet<string>();
+            Dictionary<String, String> enums = new Dictionary<String, String>();
             if (fldEl.HasChildNodes)
             {
                 foreach (XmlNode enumEl in fldEl.SelectNodes(".//value"))
                 {
-                    enums.Add(enumEl.Attributes["enum"].Value);
+                    string description = String.Empty;
+                    if (enumEl.Attributes["description"] != null)
+                        description = enumEl.Attributes["description"].Value;
+                    enums.Add(enumEl.Attributes["enum"].Value, description);
                 }
             }
             return new DDField(tag, name, enums, fldType);
