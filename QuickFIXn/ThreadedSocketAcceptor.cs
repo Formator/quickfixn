@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
-using System.Threading;
+using System.Security.Cryptography.X509Certificates;
 using System.Net;
+using QuickFix.SSL;
 
 namespace QuickFix
 {
@@ -23,7 +24,6 @@ namespace QuickFix
             {
                 get { return socketEndPoint_; }
             }
-
             #endregion 
 
             #region Private Members
@@ -34,10 +34,10 @@ namespace QuickFix
 
             #endregion
 
-            public AcceptorSocketDescriptor(IPEndPoint socketEndPoint, SocketSettings socketSettings)
+            public AcceptorSocketDescriptor(IPEndPoint socketEndPoint, SocketSettings socketSettings, SSLSettings sslSettings)
             {
                 socketEndPoint_ = socketEndPoint;
-                socketReactor_ = new ThreadedSocketReactor(socketEndPoint_, socketSettings);
+                socketReactor_ = new ThreadedSocketReactor(socketEndPoint_, socketSettings, sslSettings);
             }
 
             public void AcceptSession(Session session)
@@ -55,6 +55,7 @@ namespace QuickFix
         private SessionFactory sessionFactory_;
         private Dictionary<SessionID, Session> sessions_ = new Dictionary<SessionID, Session>();
         private Dictionary<IPEndPoint, AcceptorSocketDescriptor> socketDescriptorForAddress_ = new Dictionary<IPEndPoint, AcceptorSocketDescriptor>();
+        private SSLContainer sslContainer_ = new SSLContainer();
         private bool isStarted_ = false;
         private object sync_ = new object();
 
@@ -90,7 +91,6 @@ namespace QuickFix
         #endregion
 
         #region Private Methods
-
         private void CreateSessions(SessionSettings settings)
 	    {
             foreach(SessionID sessionID in settings.GetSessions())
@@ -134,10 +134,16 @@ namespace QuickFix
                 socketSettings.SocketNodelay = dict.GetBool(SessionSettings.SOCKET_NODELAY);
             }
 
+            SSLSettings sslSettings;
+            lock (sync_)
+            {
+                sslSettings = new SSLSettings(dict, sslContainer_);
+            }
+
             AcceptorSocketDescriptor descriptor;
             if (!socketDescriptorForAddress_.TryGetValue(socketEndPoint, out descriptor))
             {
-                descriptor = new AcceptorSocketDescriptor(socketEndPoint, socketSettings);
+                descriptor = new AcceptorSocketDescriptor(socketEndPoint, socketSettings, sslSettings);
                 socketDescriptorForAddress_[socketEndPoint] = descriptor;
             }
 

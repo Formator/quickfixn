@@ -57,6 +57,11 @@ namespace QuickFix
         public const string SEND_LOGOUT_BEFORE_TIMEOUT_DISCONNECT = "SendLogoutBeforeDisconnectFromTimeout";
         public const string SOCKET_NODELAY = "SocketNodelay";
         public const string IGNORE_POSSDUP_RESEND_REQUESTS = "IgnorePossDupResendRequests";
+        public const string USE_SSL = "UseSSL";
+        public const string SSL_CERT = "SSLCert";
+        public const string SSL_CERT_PASSWORD = "SSLCertPassword";
+        public const string SSL_SERVER_NAME = "SSLServerName";
+        public const string SSL_PROTOCOL = "SSLProtocol";
 
         #endregion
 

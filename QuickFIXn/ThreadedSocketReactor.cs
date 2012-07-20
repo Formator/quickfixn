@@ -1,7 +1,9 @@
 ﻿using System.Net;
 using System.Net.Sockets;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Collections.Generic;
+using QuickFix.SSL;
 
 namespace QuickFix
 {
@@ -31,12 +33,13 @@ namespace QuickFix
         private LinkedList<ClientHandlerThread> clientThreads_ = new LinkedList<ClientHandlerThread>();
         private TcpListener tcpListener_;
         private SocketSettings socketSettings_;
-
+        private SSLSettings sslSettings_;
         #endregion
 
-        public ThreadedSocketReactor(IPEndPoint serverSocketEndPoint, SocketSettings socketSettings)
+        public ThreadedSocketReactor(IPEndPoint serverSocketEndPoint, SocketSettings socketSettings, SSLSettings sslSettings)
         {
             socketSettings_ = socketSettings;
+            sslSettings_ = sslSettings;
             tcpListener_ = new TcpListener(serverSocketEndPoint);
         }
 
@@ -78,7 +81,7 @@ namespace QuickFix
                 {
                     TcpClient client = tcpListener_.AcceptTcpClient();
                     ApplySocketOptions(client, socketSettings_);
-                    ClientHandlerThread t = new ClientHandlerThread(client, nextClientId_++);
+                    ClientHandlerThread t = new ClientHandlerThread(client, nextClientId_++, sslSettings_);
                     lock (sync_)
                     {
                         clientThreads_.AddLast(t);
@@ -86,6 +89,23 @@ namespace QuickFix
                     // FIXME set the client thread's exception handler here
                     t.Log("connected");
                     t.Start();
+
+                    // Check existing clientThreads_.items for death ClientHandlerThreads and remove them from list
+                    while (!t.IsAlive());
+                    lock (sync_)
+                    {
+                        LinkedList<ClientHandlerThread> recycleBin = new LinkedList<ClientHandlerThread>();
+                        foreach (ClientHandlerThread clientHandlerThread in clientThreads_)
+                        {
+                            if (clientHandlerThread == null || (clientHandlerThread != null && !clientHandlerThread.IsAlive()))
+                                recycleBin.AddLast(clientHandlerThread);
+                        }
+
+                        foreach (ClientHandlerThread clientHandlerThread in recycleBin)
+                        {
+                            clientThreads_.Remove(clientHandlerThread);
+                        }
+                    }
                 }
                 catch (System.Exception e)
                 {

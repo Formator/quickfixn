@@ -1,5 +1,11 @@
-﻿using System.Net.Sockets;
+﻿using System;
+using System.Net;
+using System.Net.Security;
+using System.Net.Sockets;
+using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
+using QuickFix.SSL;
 
 namespace QuickFix
 {
@@ -16,13 +22,23 @@ namespace QuickFix
         private SocketReader socketReader_;
         private long id_;
         private FileLog log_;
+        private SslStream sslStream_;
+        private SSLSettings sslSettings_;
 
-        public ClientHandlerThread(TcpClient tcpClient, long clientId)
+        public ClientHandlerThread(TcpClient tcpClient, long clientId, SSLSettings sslSettings)
         {
             log_ = new FileLog("log", new SessionID("ClientHandlerThread", clientId.ToString(), "Debug")); /// FIXME
             tcpClient_ = tcpClient;
             id_ = clientId;
-            socketReader_ = new SocketReader(tcpClient_, this);
+            sslSettings_ = sslSettings;
+
+            if (sslSettings_.UseSSL)
+            {
+                sslStream_ = new SslStream(tcpClient_.GetStream(), false);
+                socketReader_ = new SocketReader(tcpClient_, this, sslStream_);
+            }
+            else
+                socketReader_ = new SocketReader(tcpClient_, this);
         }
 
         public void Start()
@@ -46,8 +62,27 @@ namespace QuickFix
             thread_ = null;
         }
 
+        public bool IsAlive()
+        {
+            if (null != thread_ && thread_.IsAlive)
+                return true;
+            return false;
+        }
+
         public void Run()
         {
+            if (sslSettings_.SslCert != null)
+            {
+                try
+                {
+                    sslStream_.AuthenticateAsServer(sslSettings_.SslCert, false, sslSettings_.SslProtocol, false);
+                }
+                catch (Exception ex)
+                {
+                    Disconnect(string.Format("Authentication error: {0} Client Adress: {1}", ex.Message, ((IPEndPoint)tcpClient_.Client.RemoteEndPoint).Address));
+                }
+            }
+
             while (!isShutdownRequested_)
             {
                 try
@@ -56,7 +91,7 @@ namespace QuickFix
                 }
                 catch (System.Exception e)
                 {
-                    Shutdown(e.Message);
+                    Disconnect(e.Message);
                 }
             }
 
@@ -74,14 +109,30 @@ namespace QuickFix
         public bool Send(string data)
         {
             byte[] rawData = System.Text.Encoding.UTF8.GetBytes(data);
-            int bytesSent = tcpClient_.Client.Send(rawData);
+            int bytesSent = -1;
+            if (sslStream_ != null)
+            {
+                sslStream_.Write(rawData);
+                sslStream_.Flush();
+                bytesSent = rawData.Length;
+            }                
+            else
+                bytesSent = tcpClient_.Client.Send(rawData);
             return bytesSent > 0;
         }
 
         public void Disconnect()
         {
-            Shutdown("Disconnected");
+            Disconnect("Disconnected");
+        }
+
+        public void Disconnect(string reason)
+        {
+            if (string.IsNullOrEmpty(reason))
+                reason = "Disconnected";
+            Shutdown(reason);
             tcpClient_.Client.Close();
+            if (sslStream_ != null) sslStream_.Close();
             tcpClient_.Close();
         }
 

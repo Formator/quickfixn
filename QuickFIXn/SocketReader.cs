@@ -1,4 +1,8 @@
-﻿using System.Net.Sockets;
+﻿using System.IO;
+using System.Net.Security;
+using System.Net.Sockets;
+using System.Runtime.InteropServices.ComTypes;
+using System.Security.Cryptography.X509Certificates;
 
 namespace QuickFix
 {
@@ -13,11 +17,17 @@ namespace QuickFix
         private Session qfSession_ = null;
         private TcpClient tcpClient_;
         private ClientHandlerThread responder_;
+        private SslStream sslStream_;
 
         public SocketReader(TcpClient tcpClient, ClientHandlerThread responder)
+            :this(tcpClient, responder, null)
+        { }
+
+        public SocketReader(TcpClient tcpClient, ClientHandlerThread responder, SslStream sslStream)
         {
             tcpClient_ = tcpClient;
             responder_ = responder;
+            sslStream_ = sslStream;
         }
 
         /// <summary> FIXME </summary>
@@ -27,7 +37,12 @@ namespace QuickFix
             {
                 if (tcpClient_.Client.Poll(1000000, SelectMode.SelectRead)) // one-second timeout
                 {
-                    int bytesRead = tcpClient_.Client.Receive(readBuffer_);
+                    int bytesRead = -1;
+                    if (sslStream_ != null)                
+                        bytesRead = sslStream_.Read(readBuffer_, 0, readBuffer_.Length);    
+                    else
+                        bytesRead = tcpClient_.Client.Receive(readBuffer_);
+
                     if (bytesRead < 1)
                         throw new SocketException(System.Convert.ToInt32(SocketError.ConnectionReset));
                     parser_.AddToStream(System.Text.Encoding.UTF8.GetString(readBuffer_, 0, bytesRead));
@@ -35,7 +50,7 @@ namespace QuickFix
                 else if (null != qfSession_)
                 {
                     qfSession_.Next();
-                }
+                }                    
 
                 ProcessStream();
             }
@@ -129,15 +144,16 @@ namespace QuickFix
                 OnMessageFound(msg);
         }
 
-        protected static void DisconnectClient(TcpClient client)
+        protected static void DisconnectClient(TcpClient client, SslStream sslStream)
         {
             client.Client.Close();
+            if (sslStream != null) sslStream.Close();
             client.Close();
         }
 
         protected void DisconnectClient()
         {
-            DisconnectClient(tcpClient_);
+            DisconnectClient(tcpClient_, sslStream_);
         }
 
         protected bool HandleNewSession(string msg)
@@ -203,7 +219,7 @@ namespace QuickFix
                 if (null != quickFixSession && quickFixSession.HasResponder)
                     quickFixSession.Disconnect(reason);
                 else
-                    DisconnectClient(client);
+                    DisconnectClient(client, sslStream_);
             }
         }
 

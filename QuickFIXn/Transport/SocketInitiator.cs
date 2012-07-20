@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Net.Sockets;
 using QuickFix.Config;
@@ -8,6 +10,7 @@ using System.Net;
 using System.Diagnostics;
 using System.Threading;
 using System.IO;
+using QuickFix.SSL;
 
 namespace QuickFix.Transport
 {
@@ -45,9 +48,11 @@ namespace QuickFix.Transport
         private volatile bool shutdownRequested_ = false;
         private DateTime lastConnectTimeDT = DateTime.MinValue;
         private int reconnectInterval_ = 30;
+
         private SocketSettings socketSettings_ = new SocketSettings();
         private Dictionary<SessionID, SocketInitiatorThread> threads_ = new Dictionary<SessionID, SocketInitiatorThread>();
         private Dictionary<SessionID, int> sessionToHostNum_ = new Dictionary<SessionID, int>();
+        private SSLContainer sslContainer_ = new SSLContainer();
         private object sync_ = new object();
         
         #endregion
@@ -79,7 +84,11 @@ namespace QuickFix.Transport
             SocketInitiatorThread t = socketInitiatorThread as SocketInitiatorThread;
             try
             {
-                t.Connect();
+                Exception connectEx;
+                t.Connect(out connectEx);
+                if (connectEx != null)
+                    throw connectEx;
+
                 t.Initiator.SetConnected(t.Session.SessionID);
                 t.Session.Log.OnEvent("Connection succeeded");
                 t.Session.Next();
@@ -89,9 +98,12 @@ namespace QuickFix.Transport
                     t.Initiator.RemoveThread(t);
                 t.Initiator.SetDisconnected(t.Session.SessionID);
             }
-            catch (SocketException e)
+            catch (Exception e) //SocketException 
             {
-                t.Session.Log.OnEvent("Connection failed: " + e.Message);
+                string innerMsg = string.Empty;
+                if (e.InnerException != null)
+                    innerMsg = e.InnerException.Message;
+                t.Session.Log.OnEvent(string.Format("Connection failed: {0}, {1}", e.Message, innerMsg));
                 t.Initiator.RemoveThread(t);
                 t.Initiator.SetDisconnected(t.Session.SessionID);
             }
@@ -203,11 +215,17 @@ namespace QuickFix.Transport
                 if (!session.IsSessionTime)
                     return;
 
+                SSLSettings sslSettings;
+                lock (sync_)
+                {
+                    sslSettings = new SSLSettings(settings, sslContainer_);                    
+                }
+
                 IPEndPoint socketEndPoint = GetNextSocketEndPoint(sessionID, settings);
                 SetPending(sessionID);
                 session.Log.OnEvent("Connecting to " + socketEndPoint.Address + " on port " + socketEndPoint.Port);
 
-                SocketInitiatorThread t = new SocketInitiatorThread(this, session, socketEndPoint, socketSettings_);
+                SocketInitiatorThread t = new SocketInitiatorThread(this, session, socketEndPoint, socketSettings_, sslSettings);
                 t.Start();
                 AddThread(t);
 
