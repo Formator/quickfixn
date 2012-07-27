@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Runtime.InteropServices.ComTypes;
@@ -93,7 +94,7 @@ namespace QuickFix
                 }
                 catch (System.Exception e)
                 {
-                    this.Log("Error on Session '" + qfSession_.SessionID + "': " + e.ToString());
+                    this.Log("Error on Session '" + qfSession_.SessionID + "': " + e.Message, e);
                 }
             }
             catch (InvalidMessage e)
@@ -106,18 +107,18 @@ namespace QuickFix
             }
         }
 
-        protected void HandleBadMessage(string msg, System.Exception e)
+        protected void HandleBadMessage(string msg, Exception e)
         {
             try
             {
                 if (Fields.MsgType.LOGON.Equals(Message.GetMsgType(msg)))
                 {
-                    this.Log("ERROR: Invalid LOGON message, disconnecting: " + e.Message);
+                    this.Log("ERROR: Invalid LOGON message, disconnecting: " + e.Message, e);
                     DisconnectClient();
                 }
                 else
                 {
-                    this.Log("ERROR: Invalid message: " + e.Message);
+                    this.Log("ERROR: Invalid message: " + e.Message, e);
                 }
             }
             catch (InvalidMessage)
@@ -212,7 +213,7 @@ namespace QuickFix
                 disconnectNeeded = false;
             }
 
-            this.Log("SocketReader Error: " + reason);
+            this.Log("SocketReader Error: " + reason, cause);
 
             if (disconnectNeeded)
             {
@@ -223,13 +224,14 @@ namespace QuickFix
             }
         }
 
-        /// <summary>
-        /// FIXME do proper logging
-        /// </summary>
-        /// <param name="s"></param>
         private void Log(string s)
         {
             responder_.Log(s);
+        }
+
+        private void Log(string s, Exception ex)
+        {
+            responder_.Log(s, ex);
         }
     }
 }

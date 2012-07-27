@@ -1,4 +1,6 @@
 ﻿
+using NLog;
+
 namespace QuickFix
 {
     /// <summary>
@@ -6,6 +8,7 @@ namespace QuickFix
     /// </summary>
     public class Parser
     {
+        private static Logger logger = LogManager.GetCurrentClassLogger();
         private string buffer_ = "";
 
         public void AddToStream(string data)
@@ -108,7 +111,7 @@ namespace QuickFix
 
         private bool Fail(string what)
         {
-            System.Console.WriteLine("Parser failed: " + what);
+            logger.Error("Parser failed: " + what);
             return false;
         }
     }

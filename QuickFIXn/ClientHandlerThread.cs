@@ -5,6 +5,7 @@ using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
+using NLog;
 using QuickFix.SSL;
 
 namespace QuickFix
@@ -16,18 +17,19 @@ namespace QuickFix
     /// </summary>
     public class ClientHandlerThread : Responder
     {
+        private static Logger logger = LogManager.GetCurrentClassLogger();
         private Thread thread_ = null;
         private volatile bool isShutdownRequested_ = false;
         private TcpClient tcpClient_;
         private SocketReader socketReader_;
         private long id_;
-        private FileLog log_;
+        //private FileLog log_;
         private SslStream sslStream_;
         private SSLSettings sslSettings_;
 
         public ClientHandlerThread(TcpClient tcpClient, long clientId, SSLSettings sslSettings)
         {
-            log_ = new FileLog("log", new SessionID("ClientHandlerThread", clientId.ToString(), "Debug")); /// FIXME
+            //log_ = new FileLog("log", new SessionID("ClientHandlerThread", clientId.ToString(), "Debug")); /// FIXME
             tcpClient_ = tcpClient;
             id_ = clientId;
             sslSettings_ = sslSettings;
@@ -98,10 +100,14 @@ namespace QuickFix
             this.Log("shutdown");
         }
 
-        /// FIXME do real logging
         public void Log(string s)
         {
-            log_.OnEvent(s);
+            logger.Debug(s);
+        }
+
+        public void Log(string s, Exception ex)
+        {
+            logger.ErrorException(s, ex);
         }
 
         #region Responder Members

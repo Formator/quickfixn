@@ -1,8 +1,10 @@
-﻿using System.Net;
+﻿using System;
+using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Collections.Generic;
+using NLog;
 using QuickFix.SSL;
 
 namespace QuickFix
@@ -25,7 +27,7 @@ namespace QuickFix
         #endregion
 
         #region Private Members
-
+        private static Logger logger = LogManager.GetCurrentClassLogger();
         private object sync_ = new object();
         private State state_ = State.RUNNING;
         private long nextClientId_ = 0;
@@ -63,7 +65,7 @@ namespace QuickFix
                     }
                     catch (System.Exception e)
                     {
-                        this.Log("Eror while closing server socket: " + e.Message);
+                        this.Log("Eror while closing server socket: " + e.Message, e);
                     }
                 }
             }
@@ -110,7 +112,7 @@ namespace QuickFix
                 catch (System.Exception e)
                 {
                     if (State.RUNNING == ReactorState)
-                        this.Log("Error accepting connection: " + e.Message);
+                        this.Log("Error accepting connection: " + e.Message, e);
                 }
             }
             ShutdownClientHandlerThreads();
@@ -142,9 +144,9 @@ namespace QuickFix
                         {
                             t.Join();
                         }
-                        catch(System.Exception e)
+                        catch(Exception e)
                         {
-                            t.Log("Error shutting down: " + e.Message);
+                            t.Log("Error shutting down: " + e.Message, e);
                         }
                     }
                     state_ = State.SHUTDOWN_COMPLETE;
@@ -152,13 +154,14 @@ namespace QuickFix
             }
         }
 
-        /// <summary>
-        /// FIXME do real logging
-        /// </summary>
-        /// <param name="s"></param>
         private void Log(string s)
         {
-            System.Console.WriteLine(s);
+            logger.Debug(s);
+        }
+
+        private void Log(string s, Exception ex)
+        {
+            logger.ErrorException(s, ex);
         }
     }
 }

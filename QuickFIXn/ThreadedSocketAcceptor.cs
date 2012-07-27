@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Security.Cryptography.X509Certificates;
 using System.Net;
+using NLog;
 using QuickFix.SSL;
 
 namespace QuickFix
@@ -51,6 +52,7 @@ namespace QuickFix
             }
         }
 
+        private static Logger logger = LogManager.GetCurrentClassLogger();
         private SessionSettings settings_;
         private SessionFactory sessionFactory_;
         private Dictionary<SessionID, Session> sessions_ = new Dictionary<SessionID, Session>();
@@ -186,7 +188,7 @@ namespace QuickFix
                 catch(System.Exception e)
                 {
                     /// FIXME logError(session.getSessionID(), "Error during logout", e);
-                    System.Console.WriteLine("Error during logout of Session " + session.SessionID + ": " + e.Message);
+                    logger.ErrorException("Error during logout of Session " + session.SessionID + ": " + e.Message, e);
                 }
             }
 
@@ -202,7 +204,7 @@ namespace QuickFix
                     catch(System.Exception e)
                     {
                         /// FIXME logError(session.getSessionID(), "Error during disconnect", e);
-                        System.Console.WriteLine("Error during disconnect of Session " + session.SessionID + ": " + e.Message);
+                        logger.ErrorException("Error during disconnect of Session " + session.SessionID + ": " + e.Message, e);
                     }
                 }
             }
@@ -216,7 +218,7 @@ namespace QuickFix
         /// </summary>
         private void WaitForLogout()
         {
-            System.Console.WriteLine("TODO - ThreadedSocketAcceptor.WaitForLogout not implemented!");
+            logger.Debug("TODO - ThreadedSocketAcceptor.WaitForLogout not implemented!");
             /*
             int start = System.Environment.TickCount;
             HashSet<Session> sessions = new HashSet<Session>(sessions_.Values);
