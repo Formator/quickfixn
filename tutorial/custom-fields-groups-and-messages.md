@@ -227,7 +227,7 @@ public class YourNewFIXMessageType : Message
             public static int[] fieldOrder = {
                                                  Tags.Text, 0
                                              };
-            public NoYourGrpGroup() : base(YourTags.NoYourGrp, fieldOrder) { }
+            public NoYourGrpGroup() : base(YourTags.NoYourGrp, Tags.Text, fieldOrder) { }
 
             #region Text
             public Text Text
