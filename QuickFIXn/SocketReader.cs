@@ -36,7 +36,7 @@ namespace QuickFix
         {
             try
             {
-                if (tcpClient_.Client.Poll(1000000, SelectMode.SelectRead)) // one-second timeout
+                if (tcpClient_.Client != null && tcpClient_.Client.Poll(1000000, SelectMode.SelectRead)) // one-second timeout
                 {
                     int bytesRead = -1;
                     if (sslStream_ != null)                
@@ -77,7 +77,8 @@ namespace QuickFix
                     qfSession_ = Session.LookupSession(Message.GetReverseSessionID(msg));
                     if (null == qfSession_)
                     {
-                        this.Log("ERROR: Disconnecting; received message for unknown session: " + msg);
+                        string ErrorMsg = "ERROR: Disconnecting; received message for unknown session: " + msg;
+                        this.Log(ErrorMsg, new Exception(ErrorMsg));
                         DisconnectClient();
                         return;
                     }

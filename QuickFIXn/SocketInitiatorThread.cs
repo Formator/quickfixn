@@ -90,7 +90,7 @@ namespace QuickFix
         {
             try
             {
-                if (client_.Client.Poll(1000000, SelectMode.SelectRead)) // one-second timeout
+                if (client_.Client != null && client_.Client.Poll(1000000, SelectMode.SelectRead)) // one-second timeout
                 {
                     int bytesRead = -1;
                     if (sslStream_ != null)
