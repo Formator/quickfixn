@@ -105,10 +105,7 @@ namespace QuickFix
         {
             try
             {
-                NumberFormatInfo provider = new NumberFormatInfo( );
-                provider.NumberDecimalSeparator = ".";
-                provider.NumberGroupSeparator = ",";
-                return Convert.ToDouble(GetString(key), provider);
+                return Convert.ToDouble(GetString(key), System.Globalization.CultureInfo.InvariantCulture.NumberFormat);
             }
             catch (FormatException)
             {
@@ -164,10 +161,7 @@ namespace QuickFix
 
         public void SetDouble(string key, double val)
         {
-            NumberFormatInfo provider = new NumberFormatInfo();
-            provider.NumberDecimalSeparator = ".";
-            provider.NumberGroupSeparator = ",";
-            SetString(key, Convert.ToString(val, provider));
+            SetString(key, Convert.ToString(val, System.Globalization.CultureInfo.InvariantCulture.NumberFormat));
         }
 
         public void SetBool(string key, bool val)
