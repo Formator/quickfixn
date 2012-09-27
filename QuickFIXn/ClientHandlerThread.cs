@@ -1,6 +1,12 @@
-﻿using System.Net.Sockets;
+﻿using System;
+using System.Net;
+using System.Net.Security;
+using System.Net.Sockets;
+using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
-using System;
+using NLog;
+using QuickFix.SSL;
 
 namespace QuickFix
 {
@@ -13,14 +19,17 @@ namespace QuickFix
     /// </summary>
     public class ClientHandlerThread : Responder
     {
+        private static Logger logger = LogManager.GetCurrentClassLogger();
         private Thread thread_ = null;
         private volatile bool isShutdownRequested_ = false;
         private TcpClient tcpClient_;
         private SocketReader socketReader_;
         private long id_;
         private FileLog log_;
+        private SslStream sslStream_;
+        private SSLSettings sslSettings_;
 
-        [Obsolete("Use the other constructor")]
+		[Obsolete("Use the other constructor")]
         public ClientHandlerThread(TcpClient tcpClient, long clientId)
             : this(tcpClient, clientId, new QuickFix.Dictionary())
         { }
@@ -31,8 +40,20 @@ namespace QuickFix
         /// <param name="tcpClient"></param>
         /// <param name="clientId"></param>
         /// <param name="debugLogFilePath">path where thread log will go</param>
+		[Obsolete("Use the other constructor")]
         public ClientHandlerThread(TcpClient tcpClient, long clientId, QuickFix.Dictionary settingsDict)
-        {
+			: this(tcpClient, clientId, settingsDict, null)
+        { }
+		
+		/// <summary>
+        /// Creates a ClientHandlerThread
+        /// </summary>
+        /// <param name="tcpClient"></param>
+        /// <param name="clientId"></param>
+        /// <param name="debugLogFilePath">path where thread log will go</param>
+        public ClientHandlerThread(TcpClient tcpClient, long clientId, QuickFix.Dictionary settingsDict, SSLSettings sslSettings)
+		{
+            log_ = new FileLog("log", new SessionID("ClientHandlerThread", clientId.ToString(), "Debug")); /// FIXME
             string debugLogFilePath = "log";
             if (settingsDict.Has(SessionSettings.DEBUG_FILE_LOG_PATH))
                 debugLogFilePath = settingsDict.GetString(SessionSettings.DEBUG_FILE_LOG_PATH);
@@ -45,8 +66,16 @@ namespace QuickFix
             tcpClient_ = tcpClient;
             id_ = clientId;
             socketReader_ = new SocketReader(tcpClient_, this);
-        }
+            sslSettings_ = sslSettings;
 
+            if (sslSettings_.UseSSL)
+            {
+                sslStream_ = new SslStream(tcpClient_.GetStream(), false);
+                socketReader_ = new SocketReader(tcpClient_, this, sslStream_);
+            }
+            else
+                socketReader_ = new SocketReader(tcpClient_, this);
+		}
         public void Start()
         {
             thread_ = new Thread(new ThreadStart(Run));
@@ -68,8 +97,27 @@ namespace QuickFix
             thread_ = null;
         }
 
+        public bool IsAlive()
+        {
+            if (null != thread_ && thread_.IsAlive)
+                return true;
+            return false;
+        }
+
         public void Run()
         {
+            if (sslSettings_.SslCert != null)
+            {
+                try
+                {
+                    sslStream_.AuthenticateAsServer(sslSettings_.SslCert, false, sslSettings_.SslProtocol, false);
+                }
+                catch (Exception ex)
+                {
+                    Disconnect(string.Format("Authentication error: {0} Client Adress: {1}", ex.Message, ((IPEndPoint)tcpClient_.Client.RemoteEndPoint).Address));
+                }
+            }
+
             while (!isShutdownRequested_)
             {
                 try
@@ -78,17 +126,22 @@ namespace QuickFix
                 }
                 catch (System.Exception e)
                 {
-                    Shutdown(e.Message);
+                    Disconnect(e.Message);
                 }
             }
 
             this.Log("shutdown");
         }
 
-        /// FIXME do real logging
         public void Log(string s)
         {
             log_.OnEvent(s);
+            logger.Debug(s);
+        }
+
+        public void Log(string s, Exception ex)
+        {
+            logger.ErrorException(s, ex);
         }
 
         #region Responder Members
@@ -96,14 +149,30 @@ namespace QuickFix
         public bool Send(string data)
         {
             byte[] rawData = System.Text.Encoding.UTF8.GetBytes(data);
-            int bytesSent = tcpClient_.Client.Send(rawData);
+            int bytesSent = -1;
+            if (sslStream_ != null)
+            {
+                sslStream_.Write(rawData);
+                sslStream_.Flush();
+                bytesSent = rawData.Length;
+            }                
+            else
+                bytesSent = tcpClient_.Client.Send(rawData);
             return bytesSent > 0;
         }
 
         public void Disconnect()
         {
-            Shutdown("Disconnected");
+            Disconnect("Disconnected");
+        }
+
+        public void Disconnect(string reason)
+        {
+            if (string.IsNullOrEmpty(reason))
+                reason = "Disconnected";
+            Shutdown(reason);
             tcpClient_.Client.Close();
+            if (sslStream_ != null) sslStream_.Close();
             tcpClient_.Close();
         }
 

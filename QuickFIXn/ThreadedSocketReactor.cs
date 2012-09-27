@@ -1,8 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System;
+using NLog;
+using QuickFix.SSL;
 
 namespace QuickFix
 {
@@ -26,7 +29,7 @@ namespace QuickFix
         #endregion
 
         #region Private Members
-
+        private static Logger logger = LogManager.GetCurrentClassLogger();
         private object sync_ = new object();
         private State state_ = State.RUNNING;
         private long nextClientId_ = 0;
@@ -35,17 +38,20 @@ namespace QuickFix
         private TcpListener tcpListener_;
         private SocketSettings socketSettings_;
         private QuickFix.Dictionary sessionDict_;
+        private SSLSettings sslSettings_;
 
         #endregion
 
-        [Obsolete("Use the other constructor")]
-        public ThreadedSocketReactor(IPEndPoint serverSocketEndPoint, SocketSettings socketSettings)
-            : this(serverSocketEndPoint, socketSettings, null)
+       
+		[Obsolete("Use the other constructor")]
+		public ThreadedSocketReactor(IPEndPoint serverSocketEndPoint, SocketSettings socketSettings)
+            : this(serverSocketEndPoint, socketSettings, null, null)
         { }
-        
-        public ThreadedSocketReactor(IPEndPoint serverSocketEndPoint, SocketSettings socketSettings, QuickFix.Dictionary sessionDict)
+
+        public ThreadedSocketReactor(IPEndPoint serverSocketEndPoint, SocketSettings socketSettings, QuickFix.Dictionary sessionDict, SSLSettings sslSettings)
         {
             socketSettings_ = socketSettings;
+            sslSettings_ = sslSettings;
             tcpListener_ = new TcpListener(serverSocketEndPoint);
             sessionDict_ = sessionDict;
         }
@@ -70,7 +76,7 @@ namespace QuickFix
                     }
                     catch (System.Exception e)
                     {
-                        this.Log("Error while closing server socket: " + e.Message);
+                        this.Log("Error while closing server socket: " + e.Message, e);
                     }
                 }
             }
@@ -88,7 +94,7 @@ namespace QuickFix
                 {
                     TcpClient client = tcpListener_.AcceptTcpClient();
                     ApplySocketOptions(client, socketSettings_);
-                    ClientHandlerThread t = new ClientHandlerThread(client, nextClientId_++, sessionDict_);
+                    ClientHandlerThread t = new ClientHandlerThread(client, nextClientId_++, sessionDict_, sslSettings);
                     lock (sync_)
                     {
                         clientThreads_.AddLast(t);
@@ -96,11 +102,28 @@ namespace QuickFix
                     // FIXME set the client thread's exception handler here
                     t.Log("connected");
                     t.Start();
+
+                    // Check existing clientThreads_.items for death ClientHandlerThreads and remove them from list
+                    while (!t.IsAlive());
+                    lock (sync_)
+                    {
+                        LinkedList<ClientHandlerThread> recycleBin = new LinkedList<ClientHandlerThread>();
+                        foreach (ClientHandlerThread clientHandlerThread in clientThreads_)
+                        {
+                            if (clientHandlerThread == null || (clientHandlerThread != null && !clientHandlerThread.IsAlive()))
+                                recycleBin.AddLast(clientHandlerThread);
+                        }
+
+                        foreach (ClientHandlerThread clientHandlerThread in recycleBin)
+                        {
+                            clientThreads_.Remove(clientHandlerThread);
+                        }
+                    }
                 }
                 catch (System.Exception e)
                 {
                     if (State.RUNNING == ReactorState)
-                        this.Log("Error accepting connection: " + e.Message);
+                        this.Log("Error accepting connection: " + e.Message, e);
                 }
             }
             ShutdownClientHandlerThreads();
@@ -134,7 +157,7 @@ namespace QuickFix
                         }
                         catch (System.Exception e)
                         {
-                            t.Log("Error shutting down: " + e.Message);
+                            t.Log("Error shutting down: " + e.Message, e);
                         }
                     }
                     state_ = State.SHUTDOWN_COMPLETE;
@@ -142,13 +165,14 @@ namespace QuickFix
             }
         }
 
-        /// <summary>
-        /// FIXME do real logging
-        /// </summary>
-        /// <param name="s"></param>
         private void Log(string s)
         {
-            System.Console.WriteLine(s);
+            logger.Debug(s);
+        }
+
+        private void Log(string s, Exception ex)
+        {
+            logger.ErrorException(s, ex);
         }
     }
 }

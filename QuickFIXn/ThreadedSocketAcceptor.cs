@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
+using System.Security.Cryptography.X509Certificates;
 using System.Net;
-using System;
+using NLog;
+using QuickFix.SSL;
 
 namespace QuickFix
 {
@@ -25,7 +27,6 @@ namespace QuickFix
             {
                 get { return socketEndPoint_; }
             }
-
             #endregion
 
             #region Private Members
@@ -36,10 +37,10 @@ namespace QuickFix
 
             #endregion
             
-            public AcceptorSocketDescriptor(IPEndPoint socketEndPoint, SocketSettings socketSettings, QuickFix.Dictionary sessionDict)
+            public AcceptorSocketDescriptor(IPEndPoint socketEndPoint, SocketSettings socketSettings, QuickFix.Dictionary sessionDict, SSLSettings sslSettings)
             {
                 socketEndPoint_ = socketEndPoint;
-                socketReactor_ = new ThreadedSocketReactor(socketEndPoint_, socketSettings, sessionDict);
+                socketReactor_ = new ThreadedSocketReactor(socketEndPoint_, socketSettings, sessionDict, sslSettings);
             }
 
             public void AcceptSession(Session session)
@@ -53,10 +54,12 @@ namespace QuickFix
             }
         }
 
+        private static Logger logger = LogManager.GetCurrentClassLogger();
         private SessionSettings settings_;
         private SessionFactory sessionFactory_;
         private Dictionary<SessionID, Session> sessions_ = new Dictionary<SessionID, Session>();
         private Dictionary<IPEndPoint, AcceptorSocketDescriptor> socketDescriptorForAddress_ = new Dictionary<IPEndPoint, AcceptorSocketDescriptor>();
+        private SSLContainer sslContainer_ = new SSLContainer();
         private bool isStarted_ = false;
         private object sync_ = new object();
 
@@ -92,7 +95,6 @@ namespace QuickFix
         #endregion
 
         #region Private Methods
-
         private void CreateSessions(SessionSettings settings)
         {
             foreach (SessionID sessionID in settings.GetSessions())
@@ -136,10 +138,16 @@ namespace QuickFix
                 socketSettings.SocketNodelay = dict.GetBool(SessionSettings.SOCKET_NODELAY);
             }
 
+            SSLSettings sslSettings;
+            lock (sync_)
+            {
+                sslSettings = new SSLSettings(dict, sslContainer_);
+            }
+
             AcceptorSocketDescriptor descriptor;
             if (!socketDescriptorForAddress_.TryGetValue(socketEndPoint, out descriptor))
             {
-                descriptor = new AcceptorSocketDescriptor(socketEndPoint, socketSettings, dict);
+                descriptor = new AcceptorSocketDescriptor(socketEndPoint, socketSettings, dict, sslSettings);
                 socketDescriptorForAddress_[socketEndPoint] = descriptor;
             }
 
@@ -182,7 +190,7 @@ namespace QuickFix
                 catch (System.Exception e)
                 {
                     /// FIXME logError(session.getSessionID(), "Error during logout", e);
-                    System.Console.WriteLine("Error during logout of Session " + session.SessionID + ": " + e.Message);
+                    logger.ErrorException("Error during logout of Session " + session.SessionID + ": " + e.Message, e);
                 }
             }
 
@@ -198,7 +206,7 @@ namespace QuickFix
                     catch (System.Exception e)
                     {
                         /// FIXME logError(session.getSessionID(), "Error during disconnect", e);
-                        System.Console.WriteLine("Error during disconnect of Session " + session.SessionID + ": " + e.Message);
+                        logger.ErrorException("Error during disconnect of Session " + session.SessionID + ": " + e.Message, e);
                     }
                 }
             }
@@ -212,7 +220,7 @@ namespace QuickFix
         /// </summary>
         private void WaitForLogout()
         {
-            System.Console.WriteLine("TODO - ThreadedSocketAcceptor.WaitForLogout not implemented!");
+            logger.Debug("TODO - ThreadedSocketAcceptor.WaitForLogout not implemented!");
             /*
             int start = System.Environment.TickCount;
             HashSet<Session> sessions = new HashSet<Session>(sessions_.Values);
