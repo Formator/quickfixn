@@ -36,7 +36,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-	<Reference Include="NLog, Version=2.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c, processorArchitecture=MSIL" />
+    <Reference Include="NLog, Version=2.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c, processorArchitecture=MSIL">
+      <HintPath>..\..\..\..\BSM\WebService\packages\NLog.2.0.0.2000\lib\net35\NLog.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
@@ -125,7 +127,7 @@
     <Compile Include="SocketReader.cs" />
     <Compile Include="SocketSettings.cs" />
     <Compile Include="SSL\SSLContainer.cs" />
-    <Compile Include="SSL\SSLSettings.cs" />	
+    <Compile Include="SSL\SSLSettings.cs" />
     <Compile Include="ThreadedSocketAcceptor.cs" />
     <Compile Include="StringUTF8.cs" />
     <Compile Include="ThreadedSocketReactor.cs" />

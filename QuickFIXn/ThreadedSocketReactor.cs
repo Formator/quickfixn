@@ -1,9 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
-using System.Security.Cryptography.X509Certificates;
 using System.Threading;
-using System;
 using NLog;
 using QuickFix.SSL;
 
@@ -94,7 +93,7 @@ namespace QuickFix
                 {
                     TcpClient client = tcpListener_.AcceptTcpClient();
                     ApplySocketOptions(client, socketSettings_);
-                    ClientHandlerThread t = new ClientHandlerThread(client, nextClientId_++, sessionDict_, sslSettings);
+                    ClientHandlerThread t = new ClientHandlerThread(client, nextClientId_++, sessionDict_, sslSettings_);
                     lock (sync_)
                     {
                         clientThreads_.AddLast(t);

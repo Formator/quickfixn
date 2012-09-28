@@ -62,7 +62,6 @@ namespace QuickFix
             catch (System.Exception e)
             {
                 HandleException(qfSession_, e, tcpClient_);
-                throw e;
             }
         }
 
@@ -148,7 +147,7 @@ namespace QuickFix
 
         protected static void DisconnectClient(TcpClient client, SslStream sslStream)
         {
-            client.Client.Close();
+            if (client.Client != null) client.Client.Close();
             if (sslStream != null) sslStream.Close();
             client.Close();
         }
@@ -207,6 +206,10 @@ namespace QuickFix
                     disconnectNeeded = true;
                 else
                     disconnectNeeded = false;
+            }
+            else if (realCause is IOException)
+            {
+                disconnectNeeded = true;
             }
             else
             {

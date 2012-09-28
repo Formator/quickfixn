@@ -25,13 +25,13 @@ namespace QuickFix
         private TcpClient tcpClient_;
         private SocketReader socketReader_;
         private long id_;
-        private FileLog log_;
+        //private FileLog log_;
         private SslStream sslStream_;
         private SSLSettings sslSettings_;
 
 		[Obsolete("Use the other constructor")]
         public ClientHandlerThread(TcpClient tcpClient, long clientId)
-            : this(tcpClient, clientId, new QuickFix.Dictionary())
+            : this(tcpClient, clientId, new QuickFix.Dictionary(), null)
         { }
         
         /// <summary>
@@ -40,19 +40,9 @@ namespace QuickFix
         /// <param name="tcpClient"></param>
         /// <param name="clientId"></param>
         /// <param name="debugLogFilePath">path where thread log will go</param>
-		[Obsolete("Use the other constructor")]
-        public ClientHandlerThread(TcpClient tcpClient, long clientId, QuickFix.Dictionary settingsDict)
-			: this(tcpClient, clientId, settingsDict, null)
-        { }
-		
-		/// <summary>
-        /// Creates a ClientHandlerThread
-        /// </summary>
-        /// <param name="tcpClient"></param>
-        /// <param name="clientId"></param>
-        /// <param name="debugLogFilePath">path where thread log will go</param>
         public ClientHandlerThread(TcpClient tcpClient, long clientId, QuickFix.Dictionary settingsDict, SSLSettings sslSettings)
-		{
+        {
+            /*
             log_ = new FileLog("log", new SessionID("ClientHandlerThread", clientId.ToString(), "Debug")); /// FIXME
             string debugLogFilePath = "log";
             if (settingsDict.Has(SessionSettings.DEBUG_FILE_LOG_PATH))
@@ -62,20 +52,22 @@ namespace QuickFix
 
             // FIXME - do something more flexible than hardcoding a filelog
             log_ = new FileLog(debugLogFilePath, new SessionID("ClientHandlerThread", clientId.ToString(), "Debug"));
+            */
 
             tcpClient_ = tcpClient;
             id_ = clientId;
             socketReader_ = new SocketReader(tcpClient_, this);
             sslSettings_ = sslSettings;
 
-            if (sslSettings_.UseSSL)
+            if (sslSettings_ != null && sslSettings_.UseSSL)
             {
                 sslStream_ = new SslStream(tcpClient_.GetStream(), false);
                 socketReader_ = new SocketReader(tcpClient_, this, sslStream_);
             }
             else
                 socketReader_ = new SocketReader(tcpClient_, this);
-		}
+        }
+		
         public void Start()
         {
             thread_ = new Thread(new ThreadStart(Run));
@@ -106,7 +98,7 @@ namespace QuickFix
 
         public void Run()
         {
-            if (sslSettings_.SslCert != null)
+            if (sslSettings_ != null && sslSettings_.SslCert != null)
             {
                 try
                 {
@@ -135,7 +127,7 @@ namespace QuickFix
 
         public void Log(string s)
         {
-            log_.OnEvent(s);
+            //log_.OnEvent(s);
             logger.Debug(s);
         }
 
@@ -171,7 +163,7 @@ namespace QuickFix
             if (string.IsNullOrEmpty(reason))
                 reason = "Disconnected";
             Shutdown(reason);
-            tcpClient_.Client.Close();
+            if (tcpClient_.Client != null) tcpClient_.Client.Close();
             if (sslStream_ != null) sslStream_.Close();
             tcpClient_.Close();
         }
