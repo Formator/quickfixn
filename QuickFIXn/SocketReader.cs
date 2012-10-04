@@ -39,8 +39,8 @@ namespace QuickFix
                 if (tcpClient_.Client != null && tcpClient_.Client.Poll(1000000, SelectMode.SelectRead)) // one-second timeout
                 {
                     int bytesRead = -1;
-                    if (sslStream_ != null)                
-                        bytesRead = sslStream_.Read(readBuffer_, 0, readBuffer_.Length);    
+                    if (sslStream_ != null)
+                        bytesRead = sslStream_.Read(readBuffer_, 0, readBuffer_.Length);
                     else
                         bytesRead = tcpClient_.Client.Receive(readBuffer_);
 
@@ -51,7 +51,7 @@ namespace QuickFix
                 else if (null != qfSession_)
                 {
                     qfSession_.Next();
-                }                    
+                }
 
                 ProcessStream();
             }
@@ -59,9 +59,14 @@ namespace QuickFix
             {
                 HandleException(qfSession_, e, tcpClient_);
             }
+            catch (IOException e)
+            {
+                HandleException(qfSession_, e, tcpClient_);
+            }
             catch (System.Exception e)
             {
                 HandleException(qfSession_, e, tcpClient_);
+                throw e;
             }
         }
 

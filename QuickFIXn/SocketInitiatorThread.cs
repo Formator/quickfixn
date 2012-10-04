@@ -164,8 +164,8 @@ namespace QuickFix
         public void Disconnect()
         {
             isDisconnectRequested_ = true;
-            client_.Client.Close();
-            client_.Close();
+            if (client_.Client != null) client_.Client.Close();
+            if (client_ != null) client_.Close();
         }
 
         #endregion
