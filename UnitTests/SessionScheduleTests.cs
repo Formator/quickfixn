@@ -356,29 +356,28 @@ namespace UnitTests
             Assert.AreEqual(thisDayEnd, sched.LastEndTime(thisDayEnd));
             // after endtime
             Assert.AreEqual(thisDayEnd, sched.LastEndTime(new DateTime(2012, 6, 18, 16, 05, 00, DateTimeKind.Utc)));
-
+            
             // ==========
             // UTC Session spanning midnight
             settings = new QuickFix.Dictionary();
             settings.SetString(QuickFix.SessionSettings.START_TIME, "16:00:00");
-            settings.SetString(QuickFix.SessionSettings.END_TIME, "09:00:00");
+            settings.SetString(QuickFix.SessionSettings.END_TIME, "09:30:00");
             sched = new QuickFix.SessionSchedule(settings);
 
-            thisDayEnd = new DateTime(2012, 10, 18, 09, 00, 00, DateTimeKind.Utc);
-            prevDayEnd = new DateTime(2012, 10, 17, 09, 00, 00, DateTimeKind.Utc);
+            thisDayEnd = new DateTime(2012, 10, 18, 09, 30, 00, DateTimeKind.Utc);
+            prevDayEnd = new DateTime(2012, 10, 17, 09, 30, 00, DateTimeKind.Utc);
 
             // before endtime
-            // from UTC 2012.10.18 00:00:00 to UTC 2012.10.18 08:59:00
-            for (int hour = 0; hour < 09; hour++)
-                for (int min = 0; min < 60; min++)
-                    Assert.AreEqual(prevDayEnd, sched.LastEndTime(new DateTime(2012, 10, 18, hour, min, 00, DateTimeKind.Utc)));
-
-            // after session + after starttime
-            // from UTC 2012.10.18 09:00:00 to UTC 2012.10.18 23:59:00
-            for (int hour = 09; hour < 24; hour++)
-                for (int min = 0; min < 60; min++)
-                    Assert.AreEqual(thisDayEnd, sched.LastEndTime(new DateTime(2012, 10, 18, hour, min, 00, DateTimeKind.Utc)));
-
+            Assert.AreEqual(prevDayEnd, sched.LastEndTime(new DateTime(2012, 10, 18, 0, 00, 00, DateTimeKind.Utc)));
+            Assert.AreEqual(prevDayEnd, sched.LastEndTime(new DateTime(2012, 10, 18, 9, 29, 00, DateTimeKind.Utc)));
+            // after endtime
+            Assert.AreEqual(thisDayEnd, sched.LastEndTime(new DateTime(2012, 10, 18, 15, 59, 00, DateTimeKind.Utc)));
+            // equals endtime
+            Assert.AreEqual(thisDayEnd, sched.LastEndTime(thisDayEnd));
+            // after starttime
+            Assert.AreEqual(thisDayEnd, sched.LastEndTime(new DateTime(2012, 10, 18, 16, 00, 00, DateTimeKind.Utc)));
+            Assert.AreEqual(thisDayEnd, sched.LastEndTime(new DateTime(2012, 10, 18, 23, 59, 00, DateTimeKind.Utc)));
+            
             // ==========
             // Settings file is specified in a zone during DST (eastern daylight = -4)
             // (DST status is triggered by using June dates)
@@ -461,18 +460,16 @@ namespace UnitTests
             prevWeekEnd = new DateTime(2012, 10, 08, 09, 00, 00, DateTimeKind.Utc);
             thisWeekEnd = new DateTime(2012, 10, 15, 09, 00, 00, DateTimeKind.Utc);
 
-            // before starttime + during session
-            // from UTC 2012.10.15 00:00:00 to UTC 2012.10.15 08:59:00
-            for (int hour = 0; hour < 9; hour++)
-                for (int min = 0; min < 60; min++)
-                    Assert.AreEqual(prevWeekEnd, sched.LastEndTime(new DateTime(2012, 10, 15, hour, min, 00, DateTimeKind.Utc)));
-
-            // at and after endtime
-            // from UTC 2012.10.15 09:00:00 to UTC 2012.10.21 23:59:00
-            for (int day = 15; day <= 21; day++)
-                for (int hour = (day == 15 ? 09 : 00); hour < 24; hour++)
-                    for (int min = 0; min < 60; min++)
-                        Assert.AreEqual(thisWeekEnd, sched.LastEndTime(new DateTime(2012, 10, day, hour, min, 00, DateTimeKind.Utc)));
+            // before starttime
+            Assert.AreEqual(prevWeekEnd, sched.LastEndTime(new DateTime(2012, 10, 15, 0, 00, 00, DateTimeKind.Utc)));
+            Assert.AreEqual(prevWeekEnd, sched.LastEndTime(new DateTime(2012, 10, 15, 8, 59, 00, DateTimeKind.Utc)));
+            // after endtime
+            Assert.AreEqual(thisWeekEnd, sched.LastEndTime(new DateTime(2012, 10, 19, 15, 59, 00, DateTimeKind.Utc)));
+            // equals endtime
+            Assert.AreEqual(thisWeekEnd, sched.LastEndTime(thisWeekEnd));
+            // after starttime
+            Assert.AreEqual(thisWeekEnd, sched.LastEndTime(new DateTime(2012, 10, 19, 16, 00, 00, DateTimeKind.Utc)));
+            Assert.AreEqual(thisWeekEnd, sched.LastEndTime(new DateTime(2012, 10, 22, 8, 59, 00, DateTimeKind.Utc)));
 
             // ==========
             // Settings file is specified in a zone during DST (eastern daylight = -4)
