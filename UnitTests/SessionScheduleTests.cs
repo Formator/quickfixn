@@ -358,6 +358,26 @@ namespace UnitTests
             Assert.AreEqual(thisDayEnd, sched.LastEndTime(new DateTime(2012, 6, 18, 16, 05, 00, DateTimeKind.Utc)));
 
             // ==========
+            // UTC Session spanning midnight
+            settings = new QuickFix.Dictionary();
+            settings.SetString(QuickFix.SessionSettings.START_TIME, "16:00:00");
+            settings.SetString(QuickFix.SessionSettings.END_TIME, "09:00:00");
+            sched = new QuickFix.SessionSchedule(settings);
+
+            thisDayEnd = new DateTime(2012, 10, 18, 09, 00, 00, DateTimeKind.Utc);
+            prevDayEnd = new DateTime(2012, 10, 17, 09, 00, 00, DateTimeKind.Utc);
+
+            // before endtime
+            for (int hour = 0; hour < 09; hour++)
+                for (int min = 0; min < 60; min++)
+                    Assert.AreEqual(prevDayEnd, sched.LastEndTime(new DateTime(2012, 10, 18, hour, min, 00, DateTimeKind.Utc)));
+
+            // after session + after starttime
+            for (int hour = 09; hour < 24; hour++)
+                for (int min = 0; min < 60; min++)
+                    Assert.AreEqual(thisDayEnd, sched.LastEndTime(new DateTime(2012, 10, 18, hour, min, 00, DateTimeKind.Utc)));
+
+            // ==========
             // Settings file is specified in a zone during DST (eastern daylight = -4)
             // (DST status is triggered by using June dates)
             settings = new QuickFix.Dictionary();
@@ -426,6 +446,29 @@ namespace UnitTests
             Assert.AreEqual(thisWeekEnd, sched.LastEndTime(thisWeekEnd));
             // after endtime
             Assert.AreEqual(thisWeekEnd, sched.LastEndTime(new DateTime(2012, 6, 15, 16, 05, 00, DateTimeKind.Utc)));
+
+            // ==========
+            // UTC Session spanning weekchange
+            settings = new QuickFix.Dictionary();
+            settings.SetString(QuickFix.SessionSettings.START_TIME, "16:00:00");
+            settings.SetString(QuickFix.SessionSettings.END_TIME, "09:00:00");
+            settings.SetDay(QuickFix.SessionSettings.START_DAY, System.DayOfWeek.Friday);
+            settings.SetDay(QuickFix.SessionSettings.END_DAY, System.DayOfWeek.Monday);
+            sched = new QuickFix.SessionSchedule(settings);
+
+            prevWeekEnd = new DateTime(2012, 10, 08, 09, 00, 00, DateTimeKind.Utc);
+            thisWeekEnd = new DateTime(2012, 10, 15, 09, 00, 00, DateTimeKind.Utc);
+
+            // before starttime + during session
+            for (int hour = 0; hour < 9; hour++)
+                for (int min = 0; min < 60; min++)
+                    Assert.AreEqual(prevWeekEnd, sched.LastEndTime(new DateTime(2012, 10, 15, hour, min, 00, DateTimeKind.Utc)));
+
+            // at and after endtime
+            for (int day = 15; day <= 21; day++)
+                for (int hour = (day == 15 ? 09 : 00); hour < 24; hour++)
+                    for (int min = 0; min < 60; min++)
+                        Assert.AreEqual(thisWeekEnd, sched.LastEndTime(new DateTime(2012, 10, day, hour, min, 00, DateTimeKind.Utc)));
 
             // ==========
             // Settings file is specified in a zone during DST (eastern daylight = -4)
