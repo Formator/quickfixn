@@ -782,5 +782,28 @@ namespace UnitTests
             StringAssert.Contains(expected, msgString);
         }
 
+        [Test]
+        public void RelativeTimeStampConvertProblem()
+        {
+            
+
+            var dd = new QuickFix.DataDictionary.DataDictionary();
+            dd.Load("../../../spec/fix/FIX43.xml");
+
+            string[] msgFields = { "8=FIX.4.3", "9=189", "35=S", "56=xxx", "49=yyy", 
+                                     "52=20130225-16:13:05.569", "34=2", "131=1", "117=xxyy", 
+                                     "55=AUD/JPY", "15=AUD", "132=96.359", "134=100000.0", "188=96.359", "133=96.372", 
+                                     "135=100000.0", "190=96.372", "62=00000000-00:00:30.000", "64=20130227", "10=192"
+            };
+            string msgStr = String.Join(Message.SOH, msgFields) + Message.SOH;
+
+            QuickFix.FIX43.Quote msg = new QuickFix.FIX43.Quote();
+
+            msg.FromString(msgStr, true, dd, dd, _defaultMsgFactory);
+            //QuickFix.FIX44.MarketDataIncrementalRefresh.NoMDEntriesGroup gentry1 = (QuickFix.FIX44.MarketDataIncrementalRefresh.NoMDEntriesGroup)msg.GetGroup(1, new QuickFix.FIX44.MarketDataIncrementalRefresh.NoMDEntriesGroup());
+            //Assert.AreEqual(new DateTime(2012, 10, 24), msg. .MDEntryDate.getValue());
+            //Assert.AreEqual(new DateTime(2012, 10, 24, 7, 30, 47).TimeOfDay, gentry1.MDEntryTime.getValue().TimeOfDay);
+            //Assert.AreEqual(new DateTime(2012, 10, 24, 7, 30, 47), gentry1.MDEntryDate.getValue() + gentry1.MDEntryTime.getValue().TimeOfDay);
+        }
     }
 }
