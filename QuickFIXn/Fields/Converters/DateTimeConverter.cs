@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System;
+using System.Text;
 using System.Globalization;
 
 namespace QuickFix.Fields.Converters
@@ -31,6 +32,25 @@ namespace QuickFix.Fields.Converters
             }
             catch (System.Exception e)
             {
+                try
+                {
+                    int year = System.Convert.ToInt32(str.Substring(0, 4));
+                    int month = System.Convert.ToInt32(str.Substring(4, 2));
+                    if (year == 0 && month == 0)
+                    {
+                        // It is relative DateTime
+                        int day = System.Convert.ToInt32(str.Substring(6, 2));
+                        TimeSpan tmpts = ConvertToTimeSpan(str.Substring(9, str.Length - 9));
+                        DateTime result = DateTime.MinValue + tmpts.Add(new TimeSpan(day, 0, 0, 0));
+                        return DateTime.SpecifyKind(result, DateTimeKind.Utc);
+                    }
+                    else
+                        throw new FieldConvertError("Could not convert string (" + str + ") to relative DateTime. ");
+                }
+                catch ( Exception ex )
+                {
+                    throw new FieldConvertError("Could not convert string (" + str + ") to DateTime: " + ex.Message, ex);
+                }
                 throw new FieldConvertError("Could not convert string (" + str + ") to DateTime: " + e.Message, e);
             }
         }
@@ -83,7 +103,7 @@ namespace QuickFix.Fields.Converters
             try
             {
                 System.DateTime d = ConvertToTimeOnly(str);
-                return new System.TimeSpan(d.Hour, d.Minute, d.Second, d.Millisecond);
+                return new System.TimeSpan(0, d.Hour, d.Minute, d.Second, d.Millisecond);
             }
             catch (System.Exception e)
             {

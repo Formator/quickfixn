@@ -115,5 +115,11 @@ namespace UnitTests
             Assert.Throws(typeof(FieldConvertError), delegate { DateTimeConverter.ConvertToTimeOnly(""); });
             Assert.Throws(typeof(FieldConvertError), delegate { DateTimeConverter.ConvertToTimeOnly("20021201-11:03:00"); });
         }
+
+        [Test]
+        public void RelativeDateTimeConverterTest()
+        {
+            Assert.That(DateTimeConverter.ConvertToDateTime("00000000-00:00:30.000"), Is.EqualTo(DateTime.MinValue +new TimeSpan(0,0,0,30)));
+        }
     }
 }
