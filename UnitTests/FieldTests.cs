@@ -168,5 +168,14 @@ namespace UnitTests
             t = new MDEntryTime(new DateTime(2011, 11, 30, 8, 9, 10, 555), false);
             Assert.AreEqual("08:09:10", t.ToString());
         }
+
+        [Test]
+        public void RelativeTimeTest()
+        {
+            var t = new ValidUntilTime(new DateTime(new TimeSpan(0, 0, 0, 30, 123).Ticks), true, true);
+            Assert.AreEqual("00000000-00:00:30.123", t.ToString());
+            t = new ValidUntilTime(new DateTime(new TimeSpan(0, 0, 0, 30).Ticks), false, true);
+            Assert.AreEqual("00000000-00:00:30", t.ToString());
+        }
     }
 }

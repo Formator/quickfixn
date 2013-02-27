@@ -785,8 +785,6 @@ namespace UnitTests
         [Test]
         public void RelativeTimeStampConvertProblem()
         {
-            
-
             var dd = new QuickFix.DataDictionary.DataDictionary();
             dd.Load("../../../spec/fix/FIX43.xml");
 
@@ -800,10 +798,8 @@ namespace UnitTests
             QuickFix.FIX43.Quote msg = new QuickFix.FIX43.Quote();
 
             msg.FromString(msgStr, true, dd, dd, _defaultMsgFactory);
-            //QuickFix.FIX44.MarketDataIncrementalRefresh.NoMDEntriesGroup gentry1 = (QuickFix.FIX44.MarketDataIncrementalRefresh.NoMDEntriesGroup)msg.GetGroup(1, new QuickFix.FIX44.MarketDataIncrementalRefresh.NoMDEntriesGroup());
-            //Assert.AreEqual(new DateTime(2012, 10, 24), msg. .MDEntryDate.getValue());
-            //Assert.AreEqual(new DateTime(2012, 10, 24, 7, 30, 47).TimeOfDay, gentry1.MDEntryTime.getValue().TimeOfDay);
-            //Assert.AreEqual(new DateTime(2012, 10, 24, 7, 30, 47), gentry1.MDEntryDate.getValue() + gentry1.MDEntryTime.getValue().TimeOfDay);
+            Assert.AreEqual(new DateTime(1, 1, 1, 0,0,30), msg.ValidUntilTime.getValue());
+            Assert.AreEqual(new DateTime(2013, 02, 25, 16, 13, 35, 569), msg.Header.GetDateTime(QuickFix.Fields.Tags.SendingTime) + new TimeSpan(msg.ValidUntilTime.getValue().Ticks));
         }
     }
 }

@@ -119,7 +119,7 @@ namespace UnitTests
         [Test]
         public void RelativeDateTimeConverterTest()
         {
-            Assert.That(DateTimeConverter.ConvertToDateTime("00000000-00:00:30.000"), Is.EqualTo(DateTime.MinValue +new TimeSpan(0,0,0,30)));
+            Assert.That(DateTimeConverter.ConvertToDateTime("00000000-00:00:30.000"), Is.EqualTo(DateTime.MinValue.Add(new TimeSpan(0,0,0,30))));
         }
     }
 }

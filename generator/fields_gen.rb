@@ -108,7 +108,9 @@ HERE
         public #{field[:name]}(#{field[:base_type]} val)
             :base(Tags.#{field[:name]}, val) {}
         public #{field[:name]}(#{field[:base_type]} val, bool showMilliseconds)
-	    :base(Tags.#{field[:name]}, val, showMilliseconds) {}
+			:base(Tags.#{field[:name]}, val, showMilliseconds) {}
+		public #{field[:name]}(#{field[:base_type]} val, bool showMilliseconds, bool relativeTime)
+			:base(Tags.#{field[:name]}, val, showMilliseconds, relativeTime) {}
 #{fix_values(field)}
     }
 

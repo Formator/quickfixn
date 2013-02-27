@@ -150,5 +150,21 @@ namespace QuickFix.Fields.Converters
                 return string.Format(TIME_ONLY_FORMAT_WITH_MILLISECONDS, dt);
             return string.Format(TIME_ONLY_FORMAT_WITHOUT_MILLISECONDS, dt);
         }
+
+        public static string ConvertTimeSpan(System.DateTime dt, bool includeMilliseconds)
+        {
+            string result = String.Empty;
+            result = includeMilliseconds ? DATE_TIME_FORMAT_WITH_MILLISECONDS : DATE_TIME_FORMAT_WITHOUT_MILLISECONDS;
+            // Filter out some format syntax
+            result = result.Replace("{", String.Empty).Replace("}", String.Empty).Replace("0:", "");
+            return
+                result.Replace("yyyy", (dt.Year - 1).ToString("D4"))
+                      .Replace("MM", (dt.Month - 1).ToString("D2"))
+                      .Replace("dd", (dt.Day - 1).ToString("D2"))
+                      .Replace("HH", dt.Hour.ToString("D2"))
+                      .Replace("mm", dt.Minute.ToString("D2"))
+                      .Replace("ss", dt.Second.ToString("D2"))
+                      .Replace("fff", dt.Millisecond.ToString("D3"));
+        }
     }
 }
