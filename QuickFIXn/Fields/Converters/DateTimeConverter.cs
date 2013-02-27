@@ -51,7 +51,6 @@ namespace QuickFix.Fields.Converters
                 {
                     throw new FieldConvertError("Could not convert string (" + str + ") to DateTime: " + ex.Message, ex);
                 }
-                throw new FieldConvertError("Could not convert string (" + str + ") to DateTime: " + e.Message, e);
             }
         }
 
@@ -69,7 +68,28 @@ namespace QuickFix.Fields.Converters
             }
             catch (System.Exception e)
             {
-                throw new FieldConvertError("Could not convert string (" + str + ") to DateOnly: " + e.Message, e);
+                try
+                {
+                    // Check if Date is relative
+                    int year = System.Convert.ToInt32(str.Substring(0, 4));
+                    int month = System.Convert.ToInt32(str.Substring(4, 2));
+                    int day = System.Convert.ToInt32(str.Substring(6, 2));
+                    if (!String.IsNullOrEmpty(str.Substring(9, str.Length - 9)))
+                        throw new FieldConvertError("Could not convert string (" + str + ") to relative DateOnly: " + e.Message, e);
+
+                    if (year == 0)
+                        year = 1;
+                    if (month == 0)
+                        month = 1;
+                    if (day == 0)
+                        day = 1;
+                    var result = new DateTime(year, month, day);
+                    return DateTime.SpecifyKind(result, DateTimeKind.Utc);
+                }
+                catch (Exception ex)
+                {
+                    throw new FieldConvertError("Could not convert string (" + str + ") to DateOnly: " + ex.Message, ex);
+                }
             }
         }
 
@@ -151,7 +171,7 @@ namespace QuickFix.Fields.Converters
             return string.Format(TIME_ONLY_FORMAT_WITHOUT_MILLISECONDS, dt);
         }
 
-        public static string ConvertTimeSpan(System.DateTime dt, bool includeMilliseconds)
+        public static string ConvertRelative(System.DateTime dt, bool includeMilliseconds)
         {
             string result = String.Empty;
             result = includeMilliseconds ? DATE_TIME_FORMAT_WITH_MILLISECONDS : DATE_TIME_FORMAT_WITHOUT_MILLISECONDS;
@@ -165,6 +185,18 @@ namespace QuickFix.Fields.Converters
                       .Replace("mm", dt.Minute.ToString("D2"))
                       .Replace("ss", dt.Second.ToString("D2"))
                       .Replace("fff", dt.Millisecond.ToString("D3"));
+        }
+
+        public static string ConvertRelativeDateOnly(System.DateTime dt)
+        {
+            string result = String.Empty;
+            result = DATE_ONLY_FORMAT;
+            // Filter out some format syntax
+            result = result.Replace("{", String.Empty).Replace("}", String.Empty).Replace("0:", "");
+            return
+                result.Replace("yyyy", (dt.Year - 1).ToString("D4"))
+                      .Replace("MM", (dt.Month - 1).ToString("D2"))
+                      .Replace("dd", (dt.Day - 1).ToString("D2"));
         }
     }
 }

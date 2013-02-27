@@ -170,12 +170,19 @@ namespace UnitTests
         }
 
         [Test]
-        public void RelativeTimeTest()
+        public void RelativeDateTimeTest()
         {
             var t = new ValidUntilTime(new DateTime(new TimeSpan(0, 0, 0, 30, 123).Ticks), true, true);
             Assert.AreEqual("00000000-00:00:30.123", t.ToString());
             t = new ValidUntilTime(new DateTime(new TimeSpan(0, 0, 0, 30).Ticks), false, true);
             Assert.AreEqual("00000000-00:00:30", t.ToString());
+        }
+
+        [Test]
+        public void RelativeDateOnlyTest()
+        {
+            var t = new MDEntryDate(new DateTime(new TimeSpan(0, 0, 0).Ticks), false, true);
+            Assert.AreEqual("00000000", t.ToString());
         }
     }
 }

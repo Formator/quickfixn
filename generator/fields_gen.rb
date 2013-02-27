@@ -47,6 +47,8 @@ namespace QuickFix.Fields
     fields.map{|f|
       if ["DateTimeField","TimeOnlyField"].include? f[:cs_class]
        date_field_str f
+	  elsif ["DateOnlyField"].include? f[:cs_class]
+	   dateonly_field_str f
       else  
        field_str f
      end
@@ -117,6 +119,24 @@ HERE
 HERE
   end
 
+    def self.dateonly_field_str field
+<<HERE
+    /// <summary>
+    /// #{field[:name]} Field
+    /// </summary>/
+    public sealed class #{field[:name]} : #{field[:cs_class]}
+    {
+        public #{field[:name]}()
+            :base(Tags.#{field[:name]}) {}
+        public #{field[:name]}(#{field[:base_type]} val)
+            :base(Tags.#{field[:name]}, val) {}
+		public #{field[:name]}(#{field[:base_type]} val, bool showMilliseconds, bool relativeTime)
+			:base(Tags.#{field[:name]}, val, showMilliseconds, relativeTime) {}
+#{fix_values(field)}
+    }
+
+HERE
+  end
 
   def self.fix_values fld
 		return '' if fld[:values].nil? or fld[:values].empty?

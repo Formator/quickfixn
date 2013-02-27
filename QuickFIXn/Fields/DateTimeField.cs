@@ -31,10 +31,7 @@ namespace QuickFix.Fields
 
         protected override string makeString()
         {
-            if (!_isRelativeTime)
-                return Converters.DateTimeConverter.Convert(Obj, showMilliseconds);
-            else
-                return Converters.DateTimeConverter.ConvertTimeSpan(Obj, showMilliseconds);
+            return !_isRelativeTime ? Converters.DateTimeConverter.Convert(Obj, showMilliseconds) : Converters.DateTimeConverter.ConvertRelative(Obj, showMilliseconds);
         }
     }
 
@@ -54,7 +51,7 @@ namespace QuickFix.Fields
 
         protected override string makeString()
         {
-            return Converters.DateTimeConverter.ConvertDateOnly(Obj);
+            return !_isRelativeTime ? Converters.DateTimeConverter.ConvertDateOnly(Obj) : Converters.DateTimeConverter.ConvertRelativeDateOnly(Obj);
         }
     }
 

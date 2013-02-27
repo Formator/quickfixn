@@ -4103,6 +4103,8 @@ namespace QuickFix.Fields
             :base(Tags.MDEntryDate) {}
         public MDEntryDate(DateTime val)
             :base(Tags.MDEntryDate, val) {}
+		public MDEntryDate(DateTime val, bool showMilliseconds, bool relativeTime)
+			:base(Tags.MDEntryDate, val, showMilliseconds, relativeTime) {}
 
     }
 
@@ -7957,6 +7959,8 @@ namespace QuickFix.Fields
             :base(Tags.TotalVolumeTradedDate) {}
         public TotalVolumeTradedDate(DateTime val)
             :base(Tags.TotalVolumeTradedDate, val) {}
+		public TotalVolumeTradedDate(DateTime val, bool showMilliseconds, bool relativeTime)
+			:base(Tags.TotalVolumeTradedDate, val, showMilliseconds, relativeTime) {}
 
     }
 
