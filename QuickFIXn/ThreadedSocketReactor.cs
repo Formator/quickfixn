@@ -99,7 +99,7 @@ namespace QuickFix
                 {
                     TcpClient client = tcpListener_.AcceptTcpClient();
                     ApplySocketOptions(client, socketSettings_);
-                    ClientHandlerThread t = Log == null ? new ClientHandlerThread(client, socketSettings_, nextClientId_++, sessionDict_) : new ClientHandlerThread(client, socketSettings_, nextClientId_++, Log);
+                    ClientHandlerThread t = Log == null ? new ClientHandlerThread(client, nextClientId_++, sessionDict_, socketSettings_) : new ClientHandlerThread(client, socketSettings_, nextClientId_++, Log);
                     lock (sync_)
                     {
                         clientThreads_.AddLast(t);

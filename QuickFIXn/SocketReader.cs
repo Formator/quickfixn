@@ -25,21 +25,15 @@ namespace QuickFix
 
         [Obsolete("Use other constructor")]
         public SocketReader(TcpClient tcpClient, ClientHandlerThread responder)
-            : this(tcpClient, new SocketSettings(), responder)
+            : this(tcpClient, new SocketSettings(), responder, null)
         {
         }
 
-        public SocketReader(TcpClient tcpClient, SocketSettings settings, ClientHandlerThread responder)
+        public SocketReader(TcpClient tcpClient, SocketSettings settings, ClientHandlerThread responder, ILog log)
         {
             tcpClient_ = tcpClient;
             responder_ = responder;
             stream_ = Transport.StreamFactory.CreateServerStream(tcpClient, settings, responder.GetLog());
-        }
-
-        public SocketReader(TcpClient tcpClient, ClientHandlerThread responder, ILog log)
-        {
-            tcpClient_ = tcpClient;
-            responder_ = responder;
             log_ = log;
         }
 

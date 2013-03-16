@@ -55,11 +55,11 @@ namespace QuickFix
             socketReader_ = new SocketReader(tcpClient_, socketSettings, this, log_);
         }
 
-        public ClientHandlerThread(TcpClient tcpClient, long clientId, ILog log)
+        public ClientHandlerThread(TcpClient tcpClient,  SocketSettings socketSettings, long clientId, ILog log)
         {
             tcpClient_ = tcpClient;
             id_ = clientId;
-            socketReader_ = new SocketReader(tcpClient_, this, log);
+            socketReader_ = new SocketReader(tcpClient_, socketSettings, this, log);
             log_ = log;
         }
 
